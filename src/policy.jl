@@ -15,7 +15,7 @@ function _action(policy::NNPolicy{P,Q,A}, o::AbstractArray{T, N}) where {P<:Unio
     if ndims(o) == policy.n_input_dims
         obatch = reshape(o, (size(o)...,1))
         vals = policy.network(obatch)
-        return policy.action_map[argmax(vals)]
+        return policy.action_map[argmax(vals)] # need to change for continuous
     else 
         throw("NNPolicyError: was expecting an array with $(policy.n_input_dims) dimensions, got $(ndims(o))")
     end

@@ -1,4 +1,4 @@
-#= 
+ #= 
 interface for defining an exploration policy
 =#
 

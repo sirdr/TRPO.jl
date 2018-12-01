@@ -1,5 +1,4 @@
 @with_kw mutable struct TRPOSolver
-    policy_network::Any = nothing # intended to be a flux model
     value_network::Any = nothing # intended to be a flux model 
     learning_rate::Float64 = 1e-4
     max_steps::Int64 = 1000
@@ -41,14 +40,13 @@ end
 
 function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     # check reccurence 
-    if isrecurrent(solver.qnetwork) && !solver.recurrence
+    if isrecurrent(solver.value_network) && !solver.recurrence
         throw("DeepQLearningError: you passed in a recurrent model but recurrence is set to false")
     end
     replay = initialize_replay_buffer(solver, env)
-    active_q = solver.qnetwork
-    end
+    active_q = solver.value_network
     policy = NNPolicy(env.problem, active_q, ordered_actions(env.problem), length(obs_dimensions(env)))
-    target_q = deepcopy(solver.qnetwork)
+    target_q = deepcopy(solver.value_network)
     optimizer = ADAM(Flux.params(active_q), solver.learning_rate)
     # start training
     reset!(policy)
@@ -68,7 +66,7 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     	# initialize replay buffer
 
     	# perform rollout
-        
+
     	while num_samples <= solver.batch_size
     		# reset Environment
     		obs = reset(env)
@@ -141,8 +139,8 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     if model_saved
         if solver.verbose
             @printf("Restore model with eval reward %1.3f \n", saved_mean_reward)
-            saved_model = BSON.load(solver.logdir*"qnetwork.bson")[:qnetwork]
-            Flux.loadparams!(policy.qnetwork, saved_model)
+            saved_model = BSON.load(solver.logdir*"value_network.bson")[:value_network]
+            Flux.loadparams!(policy.value_network, saved_model)
         end
     end
     return policy
@@ -161,11 +159,12 @@ function initialize_replay_buffer(solver::TRPOSolver, env::AbstractEnvironment)
     return replay #XXX type unstable
 end
 
-
+# need to redefine loss
 function loss(td)
     l = mean(huber_loss.(td))
     return l
 end
+
 
 function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment,
@@ -266,7 +265,7 @@ end
 function save_model(solver::TRPOSolver, active_q, scores_eval::Float64, saved_mean_reward::Float64, model_saved::Bool)
     if scores_eval >= saved_mean_reward
         weights = Tracker.data.(params(active_q))
-        bson(solver.logdir*"qnetwork.bson", qnetwork=weights)
+        bson(solver.logdir*"value_network.bson", value_network=weights)
         if solver.verbose
             @printf("Saving new model with eval reward %1.3f \n", scores_eval)
         end
