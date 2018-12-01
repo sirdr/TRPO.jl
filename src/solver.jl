@@ -66,8 +66,9 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
 
     	# initialize replay buffer
 
-    	# perform rollout
 
+
+    	# perform rollout
     	while num_samples <= solver.batch_size
     		# reset Environment
     		obs = reset(env)
@@ -78,9 +79,12 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     			act, eps = exploration(solver.exploration_policy, policy, env, obs, global_step, solver.rng)
     			global_step += 1
     		end
-    		# 
+
     	end
-    	# 
+        hs = hiddenstates(active_value)
+        loss_val, td_errors, grad_val = batch_train!(solver, env, optimizer, active_value, target_q, replay)
+        sethiddenstates!(active_value, hs)
+
     end
 
     # for t=1:solver.max_steps
