@@ -1,4 +1,5 @@
 @with_kw mutable struct TRPOSolver
+    policy_network::Any = nothing # intended to be a flux model
     value_network::Any = nothing # intended to be a flux model 
     learning_rate::Float64 = 1e-4
     max_steps::Int64 = 1000
@@ -44,10 +45,10 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
         throw("DeepQLearningError: you passed in a recurrent model but recurrence is set to false")
     end
     replay = initialize_replay_buffer(solver, env)
-    active_q = solver.value_network
-    policy = NNPolicy(env.problem, active_q, ordered_actions(env.problem), length(obs_dimensions(env)))
+    active_value = solver.value_network
+    policy = NNPolicy(env.problem, solver.policy_network, ordered_actions(env.problem), length(obs_dimensions(env)))
     target_q = deepcopy(solver.value_network)
-    optimizer = ADAM(Flux.params(active_q), solver.learning_rate)
+    optimizer = ADAM(Flux.params(active_value), solver.learning_rate)
     # start training
     reset!(policy)
     obs = reset(env)
@@ -106,13 +107,13 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     #     avg100_steps = mean(episode_steps[max(1, length(episode_steps)-101):end])
         
     #     if t%solver.train_freq == 0       
-    #         hs = hiddenstates(active_q)
-    #         loss_val, td_errors, grad_val = batch_train!(solver, env, optimizer, active_q, target_q, replay)
-    #         sethiddenstates!(active_q, hs)
+    #         hs = hiddenstates(active_value)
+    #         loss_val, td_errors, grad_val = batch_train!(solver, env, optimizer, active_value, target_q, replay)
+    #         sethiddenstates!(active_value, hs)
     #     end
 
     #     if t%solver.target_update_freq == 0
-    #         target_q = deepcopy(active_q)
+    #         target_q = deepcopy(active_value)
     #     end
 
     #     if t%solver.eval_freq == 0
@@ -131,7 +132,7 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     #         end             
     #     end
     #     if t > solver.train_start && t%solver.save_freq == 0
-    #         model_saved, saved_mean_reward = save_model(solver, active_q, scores_eval, saved_mean_reward, model_saved)
+    #         model_saved, saved_mean_reward = save_model(solver, active_value, scores_eval, saved_mean_reward, model_saved)
     #     end
 
     # end # end training
@@ -169,14 +170,14 @@ end
 function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment,
                       optimizer, 
-                      active_q, 
+                      active_value, 
                       target_q,
                       s_batch, a_batch, r_batch, sp_batch, done_batch, importance_weights)
-    q_values = active_q(s_batch) # n_actions x batch_size
+    q_values = active_value(s_batch) # n_actions x batch_size
     q_sa = [q_values[a_batch[i], i] for i=1:solver.batch_size] # maybe not ideal
     if solver.double_q
         target_q_values = target_q(sp_batch)
-        qp_values = active_q(sp_batch)
+        qp_values = active_value(sp_batch)
         # best_a = argmax(qp_values, dims=1) # fails with TrackedArrays.
         # q_sp_max = target_q_values[best_a]
         q_sp_max = vec([target_q_values[argmax(view(qp_values,:,i)), i] for i=1:solver.batch_size])
@@ -190,7 +191,7 @@ function batch_train!(solver::TRPOSolver,
     # td_vals = [td_tracked[i].data for i=1:solver.batch_size]
     td_vals = Flux.data.(td_tracked)
     Flux.back!(loss_tracked)
-    grad_norm = globalnorm(params(active_q))
+    grad_norm = globalnorm(params(active_value))
     optimizer()
     return loss_val, td_vals, grad_norm
 end
@@ -198,21 +199,21 @@ end
 function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment,
                       optimizer, 
-                      active_q, 
+                      active_value, 
                       target_q,
                       replay::ReplayBuffer)
     s_batch, a_batch, r_batch, sp_batch, done_batch = sample(replay)
-    return batch_train!(solver, env, optimizer, active_q, target_q, s_batch, a_batch, r_batch, sp_batch, done_batch, ones(solver.batch_size))
+    return batch_train!(solver, env, optimizer, active_value, target_q, s_batch, a_batch, r_batch, sp_batch, done_batch, ones(solver.batch_size))
 end
 
 function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment,
                       optimizer, 
-                      active_q, 
+                      active_value, 
                       target_q,
                       replay::PrioritizedReplayBuffer)
     s_batch, a_batch, r_batch, sp_batch, done_batch, indices, weights = sample(replay)
-    loss_val, td_vals, grad_norm = batch_train!(solver, env, optimizer, active_q, target_q, s_batch, a_batch, r_batch, sp_batch, done_batch, weights)
+    loss_val, td_vals, grad_norm = batch_train!(solver, env, optimizer, active_value, target_q, s_batch, a_batch, r_batch, sp_batch, done_batch, weights)
     update_priorities!(replay, indices, td_vals)
     return loss_val, td_vals, grad_norm
 end
@@ -221,11 +222,11 @@ end
 function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment,
                       optimizer, 
-                      active_q, 
+                      active_value, 
                       target_q,
                       replay::EpisodeReplayBuffer)
     s_batch, a_batch, r_batch, sp_batch, done_batch, trace_mask_batch = DeepQLearning.sample(replay)
-    q_values = active_q.(s_batch) # vector of size trace_length n_actions x batch_size
+    q_values = active_value.(s_batch) # vector of size trace_length n_actions x batch_size
     q_sa = [zeros(eltype(q_values[1]), solver.batch_size) for i=1:solver.trace_length]
     for i=1:solver.trace_length  # there might be a more elegant way of doing this
         for j=1:solver.batch_size
@@ -236,8 +237,8 @@ function batch_train!(solver::TRPOSolver,
     end
     if solver.double_q
         target_q_values = target_q.(sp_batch)
-        qp_values = active_q.(sp_batch)
-        Flux.reset!(active_q)
+        qp_values = active_value.(sp_batch)
+        Flux.reset!(active_value)
         # best_a = argmax.(qp_values, dims=1)
         # q_sp_max = broadcast(getindex, target_q_values, best_a)
         q_sp_max = [vec([target_q_values[j][argmax(view(qp_values[j],:,i)), i] for i=1:solver.batch_size]) for j=1:solver.trace_length] #XXX find more elegant way to do this
@@ -250,21 +251,21 @@ function batch_train!(solver::TRPOSolver,
     end
     td_tracked = broadcast((x,y) -> x.*y, trace_mask_batch, q_sa .- q_targets)
     loss_tracked = sum(loss.(td_tracked))/solver.trace_length
-    Flux.reset!(active_q)
-    Flux.truncate!(active_q)
+    Flux.reset!(active_value)
+    Flux.truncate!(active_value)
     Flux.reset!(target_q)
     Flux.truncate!(target_q)
     loss_val = Flux.data(loss_tracked)
     td_vals = Flux.data(td_tracked)
     Flux.back!(loss_tracked)
-    grad_norm = globalnorm(params(active_q))
+    grad_norm = globalnorm(params(active_value))
     optimizer()
     return loss_val, td_vals, grad_norm
 end
 
-function save_model(solver::TRPOSolver, active_q, scores_eval::Float64, saved_mean_reward::Float64, model_saved::Bool)
+function save_model(solver::TRPOSolver, active_value, scores_eval::Float64, saved_mean_reward::Float64, model_saved::Bool)
     if scores_eval >= saved_mean_reward
-        weights = Tracker.data.(params(active_q))
+        weights = Tracker.data.(params(active_value))
         bson(solver.logdir*"value_network.bson", value_network=weights)
         if solver.verbose
             @printf("Saving new model with eval reward %1.3f \n", scores_eval)
