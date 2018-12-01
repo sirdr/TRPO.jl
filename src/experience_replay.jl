@@ -1,4 +1,4 @@
-struct DQExperience
+struct TRPOExperience
     s::Array{Float64}
     a::Int64
     r::Float64
@@ -12,7 +12,7 @@ mutable struct ReplayBuffer
     rng::AbstractRNG
     _curr_size::Int64
     _idx::Int64
-    _experience::Vector{DQExperience}
+    _experience::Vector{TRPOExperience}
 
     _s_batch::Array{Float64}
     _a_batch::Vector{Int64}
@@ -25,7 +25,7 @@ mutable struct ReplayBuffer
                           batch_size::Int64,
                           rng::AbstractRNG = MersenneTwister(0))
         s_dim = obs_dimensions(env)
-        experience = Vector{DQExperience}(undef, max_size)
+        experience = Vector{TRPOExperience}(undef, max_size)
         _s_batch = zeros(s_dim..., batch_size)
         _a_batch = zeros(Int64, batch_size)
         _r_batch = zeros(batch_size)
@@ -40,7 +40,7 @@ is_full(r::ReplayBuffer) = r._curr_size == r.max_size
 
 max_size(r::ReplayBuffer) = r.max_size
 
-function add_exp!(r::ReplayBuffer, expe::DQExperience)
+function add_exp!(r::ReplayBuffer, expe::TRPOExperience)
     r._experience[r._idx] = expe
     r._idx = mod1((r._idx + 1),r.max_size)
     if r._curr_size < r.max_size
@@ -77,7 +77,7 @@ function populate_replay_buffer!(replay::ReplayBuffer, env::AbstractEnvironment;
         action = sample_action(env)
         ai = actionindex(env.problem, action)
         op, rew, done, info = step!(env, action)
-        exp = DQExperience(o, ai, rew, op, done)
+        exp = TRPOExperience(o, ai, rew, op, done)
         add_exp!(replay, exp)
         o = op
         # println(o, " ", action, " ", rew, " ", done, " ", info) #TODO verbose?
