@@ -87,7 +87,7 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     #     act, eps = exploration(solver.exploration_policy, policy, env, obs, t, solver.rng)
     #     ai = actionindex(env.problem, act)
     #     op, rew, done, info = step!(env, act)
-    #     exp = DQExperience(obs, ai, rew, op, done)
+    #     exp = TRPOExperience(obs, ai, rew, op, done)
     #     add_exp!(replay, exp)
     #     obs = op
     #     step += 1
