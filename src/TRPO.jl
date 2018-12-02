@@ -10,6 +10,7 @@ using POMDPs
 using POMDPModelTools
 using POMDPPolicies
 using RLInterface
+using Optim
 
 export TRPOSolver,
        AbstractNNPolicy,
@@ -29,7 +30,8 @@ include("evaluation_policy.jl")
 include("experience_replay.jl")
 include("prioritized_experience_replay.jl")
 include("episode_replay.jl")
-include("dueling.jl")
 include("solver.jl")
+include("running_state.jl")
+include("models.jl")
 
 end # module DeepQLearning
