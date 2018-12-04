@@ -27,6 +27,8 @@
     log_freq::Int64 = 100
     verbose::Bool = true
     l2_reg::Float64 = 1e-3
+    gamma::Float64 = 0.995
+    tau::Float64 = 0.97
 end
 
 function POMDPs.solve(solver::TRPOSolver, problem::MDP)
@@ -156,14 +158,32 @@ function batch_train!(solver::TRPOSolver,
                       value_network, 
                       s_batch, a_batch, r_batch, sp_batch, done_batch)
 
+    values = value_net(s_batch)
+
+    returns = zeros(1, solver.batch_size)
+    deltas = zeros(1, solver.batch_size)
+    advantages = zeros(1, solver.batch_size)
+
+    prev_return = 0
+    prev_value = 0
+    prev_advantage = 0
+
+    for i in size(r_batch)[end]:-1:1:
+        returns[:,i] = rewards[:,i] + solver.gamma * prev_return * done_batch[:,i]
+        deltas[:,i] = rewards[:,i] + solver.gamma * prev_value * done_batch[:,i] - Tracker.data(values)[:,i]
+        advantages[:,i] = deltas[:,i] + solver.gamma * solver.tau * prev_advantage * done_batch[:,i]
+
+        prev_return = returns[0, i]
+        prev_value = values.data[0, i]
+        prev_advantage = advantages[0, i]
+
+    targets = param(returns)
+
     ## define value loss function
     function get_value_loss(flat_params)
-        set_flat_params_to(value_network, flat_params)
-
-        _values = value_network(states)
-
+        set_flat_params_to!(value_network, flat_params)
+        _values = value_network(s_batch)
         value_loss = mean((_values - targets).^2)
-
         # weight decay
         for param in params(value_network)
             value_loss += sum(param.^2)*solver.l2_reg
@@ -172,13 +192,18 @@ function batch_train!(solver::TRPOSolver,
     end
 
     # use L-BFGS optimizer (same as in the original paper implementation)
-    res = optimize(get_value_loss, get_flat_params_from(value_network), LBFGS(), Optim.options(iterations=25)) # options used in corresponding pytorch implementation
+    res = optimize(get_value_loss, get_flat_params_from(value_network), LBFGS(), Optim.Options(iterations=25)) # options used in corresponding pytorch implementation
     flat_params = minimizer(res) # gets the params that minimize the loss
-    set_flat_params_to(value_network, flat_params)
+    set_flat_params_to!(value_network, flat_params)
+
+    # Begin: TODO - figure out return of policy network
+    action_means, action_log_stds, action_stds = policy_network() 
+    # End: TODO
 
     ## define policy loss function
+    function get_policy_loss()
 
-    function get_policy_loss(flat_params)
+    end
 
 
     
