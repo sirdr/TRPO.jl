@@ -11,6 +11,7 @@ using POMDPModelTools
 using POMDPPolicies
 using RLInterface
 using Optim
+using LinearAlgebra
 
 export TRPOSolver,
        AbstractNNPolicy,

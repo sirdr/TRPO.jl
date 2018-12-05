@@ -251,7 +251,9 @@ function batch_train!(solver::TRPOSolver,
     
 
 
-    return loss_val, td_vals, grad_norm
+        return loss_val, td_vals, grad_norm
+    end
+
 end
 
 
