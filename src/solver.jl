@@ -158,7 +158,7 @@ function batch_train!(solver::TRPOSolver,
                       value_network, 
                       s_batch, a_batch, r_batch, sp_batch, done_batch)
 
-    values = value_net(s_batch)
+    values = value_network(s_batch)
 
     returns = zeros(1, solver.batch_size)
     deltas = zeros(1, solver.batch_size)
@@ -168,14 +168,15 @@ function batch_train!(solver::TRPOSolver,
     prev_value = 0
     prev_advantage = 0
 
-    for i in size(r_batch)[end]:-1:1:
-        returns[:,i] = rewards[:,i] + solver.gamma * prev_return * done_batch[:,i]
-        deltas[:,i] = rewards[:,i] + solver.gamma * prev_value * done_batch[:,i] - Tracker.data(values)[:,i]
-        advantages[:,i] = deltas[:,i] + solver.gamma * solver.tau * prev_advantage * done_batch[:,i]
+    for i in size(r_batch)[end]:-1:1
+        returns[:,i] = r_batch[:,i] + gamma * prev_return * done_batch[:,i]
+        deltas[:,i] = r_batch[:,i] + gamma * prev_value * done_batch[:,i] - Tracker.data(values)[:,i]
+        advantages[:,i] = deltas[:,i] + gamma * tau * prev_advantage * done_batch[:,i]
 
-        prev_return = returns[0, i]
-        prev_value = values.data[0, i]
-        prev_advantage = advantages[0, i]
+        prev_return = returns[1, i]
+        prev_value = Tracker.data(values)[1, i]
+        prev_advantage = advantages[1, i]
+    end
 
     targets = param(returns)
 
@@ -186,26 +187,67 @@ function batch_train!(solver::TRPOSolver,
         value_loss = mean((_values - targets).^2)
         # weight decay
         for param in params(value_network)
-            value_loss += sum(param.^2)*solver.l2_reg
-        back!(value_loss)
-        return (Tracker.data(value_loss), Tracker.data(get_flat_grad_from(value_network))
+            value_loss += sum(param.^2)*l2_reg
+        end
+        #Flux.back!(value_loss)
+        for param in params(value_network)
+            grads = Tracker.gradient(() -> value_loss, Params(param))
+        end
+        #Tracker.data(get_flat_grad_from(value_network))
+        return Tracker.data(value_loss)
     end
 
-    # use L-BFGS optimizer (same as in the original paper implementation)
-    res = optimize(get_value_loss, get_flat_params_from(value_network), LBFGS(), Optim.Options(iterations=25)) # options used in corresponding pytorch implementation
-    flat_params = minimizer(res) # gets the params that minimize the loss
+    function g!(storage, x)
+        _values = value_network(s_batch)
+        value_loss = mean((_values - targets).^2)
+        # weight decay
+        for param in params(value_network)
+            value_loss += sum(param.^2)*l2_reg
+        end
+        #Flux.back!(value_loss)
+        flat_grads = Float64[]
+        for param in params(value_network)
+            grads = Tracker.gradient(() -> value_loss, Params(param))
+            g = Tracker.data(grads[param])
+            append!(flat_grads, reshape(g, length(g)))
+        end
+        for i in 1:length(flat_grads)
+            storage[i] = flat_grads[i]
+        end
+    end
+
+    res = optimize(get_value_loss, g!, get_flat_params_from(value_network), LBFGS(), Optim.Options(iterations=25)) # options used in corresponding pytorch implementation
+    flat_params = Optim.minimizer(res) # gets the params that minimize the loss
     set_flat_params_to!(value_network, flat_params)
 
     # Begin: TODO - figure out return of policy network
-    action_means, action_log_stds, action_stds = policy_network() 
+    actions = policy_network(s_batch) 
     # End: TODO
+
+    # update advantage
+    advantages = (advantages .- mean(advantages))./std(advantages)
+
+    actions
+    fixed_softmax_loss = logsoftmax!(a_batch)
+    fixed_softmax_loss = fixed_softmax_loss[]
 
     ## define policy loss function
     function get_policy_loss()
 
+        actions = policy_net(s_batch)
+                
+        log_prob = normal_log_density(Variable(actions), action_means, action_log_stds, action_stds)
+        action_loss = -Variable(advantages) * torch.exp(log_prob - Variable(fixed_log_prob))
+
     end
 
 
+    ## define KL loss for discrete distributions
+    function get_kl()
+        actions = policy_net(s_batch)
+
+    end
+    
     
 
 

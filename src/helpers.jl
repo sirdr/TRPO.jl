@@ -16,7 +16,7 @@ end
 takes array representing new flattened parameters of network and uses
 them to replace the current parameters of the network
 """
-function set_flat_params_to(model, flat_params)
+function set_flat_params_to!(model, flat_params)
     prev_ind = 1
     new_params = Array[]
     for param in params(model)
@@ -36,19 +36,19 @@ gets all gradients of a given neural network and returns a
 flattened version of them
 """
 
-function get_flat_grads_from(model, grad_grad=False)
-    flat_grads = Array[]
-    for param in params(model)
-        if grad_grad
-            gg = Tracker.grad(param) ## NEED TO FIGURE OUT DOUBLE GRAD IN FLUX
-            push!(flat_grads, reshape(gg, length(gg)))
-        else
-            g = Tracker.grad(param)
-            append!(flat_grads, reshape(g, length(g)))
-        end
-    end
-    return flat_grads
-end
+# function get_flat_grads_from(model, grad_grad=False)
+#     flat_grads = Array[]
+#     for param in params(model)
+#         if grad_grad
+#             gg = Tracker.grad(param) ## NEED TO FIGURE OUT DOUBLE GRAD IN FLUX
+#             push!(flat_grads, reshape(gg, length(gg)))
+#         else
+#             g = Tracker.grad(param)
+#             append!(flat_grads, reshape(g, length(g)))
+#         end
+#     end
+#     return flat_grads
+# end
 
 
 
