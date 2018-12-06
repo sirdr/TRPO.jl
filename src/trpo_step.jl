@@ -68,8 +68,8 @@ function linesearch(model, f, x, fullstep, expected_improve_rate, max_backtracks
 
     for (_n_backtracks, stepfrac) in backtrack_list
         xnew = x + stepfrac * fullstep
-        set_flat_params_to(model, xnew)
-        newfval = f()
+        set_flat_params_to!(model, xnew)
+        newfval = f(model)
         actual_improve = fval - newfval
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve / expected_improve
@@ -130,7 +130,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
     first_lm = lagrange_multiplier[0]
     grad_norm = norm(flat_grads_loss)
 
-    println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
+    #println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
 
     prev_params = get_flat_params_from(model)
     success, new_params = linesearch(model, get_loss, prev_params, fullstep,
