@@ -92,6 +92,8 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
         append!(flat_grads_loss, reshape(g, length(g)))
     end
 
+    print("yeeeeeeeeeeeeeeee\n")
+
     function fisher_vector_product(v)
         kl = get_kl()
         kl = mean(kl)
