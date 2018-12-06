@@ -83,8 +83,6 @@ end
 
 function trpo_step(model, get_loss, get_kl, max_kl, damping)
 
-    quit()
-
     loss = get_loss()
 
     flat_grads_loss = Float64[]
@@ -132,7 +130,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
     first_lm = lagrange_multiplier[0]
     grad_norm = norm(flat_grads_loss)
 
-    #println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
+    println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
 
     prev_params = get_flat_params_from(model)
     success, new_params = linesearch(model, get_loss, prev_params, fullstep,
