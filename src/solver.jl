@@ -181,7 +181,7 @@ function batch_train!(solver::TRPOSolver,
         value_loss = mean((_values[1,:] - targets).^2)
         # weight decay
         for param in params(value_network)
-            value_loss += sum(param.^2)*l2_reg
+            value_loss += sum(param.^2)*solver.l2_reg
         end
         #Flux.back!(value_loss)
         for param in params(value_network)
@@ -196,7 +196,7 @@ function batch_train!(solver::TRPOSolver,
         value_loss = mean((_values[1,:] - targets).^2)
         # weight decay
         for param in params(value_network)
-            value_loss += sum(param.^2)*l2_reg
+            value_loss += sum(param.^2)*solver.l2_reg
         end
         #Flux.back!(value_loss)
         flat_grads = Float64[]
