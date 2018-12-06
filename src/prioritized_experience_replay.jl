@@ -10,7 +10,7 @@ mutable struct PrioritizedReplayBuffer
     _curr_size::Int64
     _idx::Int64
     _priorities::Vector{Float64}
-    _experience::Vector{DQExperience}
+    _experience::Vector{TRPOExperience}
 
     _s_batch::Array{Float64}
     _a_batch::Vector{Int64}
@@ -27,7 +27,7 @@ mutable struct PrioritizedReplayBuffer
                                     β::Float64 = 0.4,
                                     ϵ::Float64 = 1e-3)
         s_dim = obs_dimensions(env)
-        experience = Vector{DQExperience}(undef, max_size)
+        experience = Vector{TRPOExperience}(undef, max_size)
         priorities = Vector{Float64}(undef, max_size)
         _s_batch = zeros(s_dim..., batch_size)
         _a_batch = zeros(Int64, batch_size)
@@ -45,7 +45,7 @@ is_full(r::PrioritizedReplayBuffer) = r._curr_size == r.max_size
 
 max_size(r::PrioritizedReplayBuffer) = r.max_size
 
-function add_exp!(r::PrioritizedReplayBuffer, expe::DQExperience, td_err::Float64=abs(expe.r))
+function add_exp!(r::PrioritizedReplayBuffer, expe::TRPOExperience, td_err::Float64=abs(expe.r))
     @assert td_err + r.ϵ > 0.
     priority = (td_err + r.ϵ)^r.α
     r._experience[r._idx] = expe

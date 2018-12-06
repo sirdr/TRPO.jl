@@ -29,6 +29,8 @@
     l2_reg::Float64 = 1e-3
     gamma::Float64 = 0.995
     tau::Float64 = 0.97
+    max_kl::Float64 = 0.01
+    damping::Float64 = 0.1
 end
 
 function POMDPs.solve(solver::TRPOSolver, problem::MDP)
@@ -45,15 +47,6 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     # check reccurence 
     if isrecurrent(solver.policy_network) && !solver.recurrence
         throw("TRPOError: you passed in a recurrent model but recurrence is set to false")
-    end
-
-    # This is mainly just for ease of testing... will remove in final version
-    if solver.policy_network == nothing
-        solver.policy_network = PolicyNN(length(obs_dimensions(env)), 64, 64, n_actions(env))
-    end
-
-    if solver.value_network == nothing
-        solver.value_network = ValueNN(length(obs_dimensions(env)), 64, 64, 1)
     end
 
     replay = initialize_replay_buffer(solver, env)
@@ -91,9 +84,10 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
                 episode_rewards[end] += rew
                 if done
                     break
+                end
+            end
             num_samples += (t - 1)
             global_step += num_samples
-    		end
 
     	end
 
@@ -169,9 +163,9 @@ function batch_train!(solver::TRPOSolver,
     prev_advantage = 0
 
     for i in size(r_batch)[end]:-1:1
-        returns[:,i] = r_batch[:,i] + gamma * prev_return * done_batch[:,i]
-        deltas[:,i] = r_batch[:,i] + gamma * prev_value * done_batch[:,i] - Tracker.data(values)[:,i]
-        advantages[:,i] = deltas[:,i] + gamma * tau * prev_advantage * done_batch[:,i]
+        returns[:,i] = r_batch[:,i] + solver.gamma * prev_return * done_batch[:,i]
+        deltas[:,i] = r_batch[:,i] + solver.gamma * prev_value * done_batch[:,i] - Tracker.data(values)[:,i]
+        advantages[:,i] = deltas[:,i] + solver.gamma * solver.tau * prev_advantage * done_batch[:,i]
 
         prev_return = returns[1, i]
         prev_value = Tracker.data(values)[1, i]
@@ -227,33 +221,31 @@ function batch_train!(solver::TRPOSolver,
     # update advantage
     advantages = (advantages .- mean(advantages))./std(advantages)
 
-    actions
-    fixed_softmax_loss = logsoftmax!(a_batch)
-    fixed_softmax_loss = fixed_softmax_loss[]
+    fixed_log_softmax = logsoftmax!(actions)
+    fixed_log_prob = [fixed_log_softmax[a, i] for (i, a) in enumerate(a_batch)]
 
     ## define policy loss function
     function get_policy_loss()
-
-        actions = policy_net(s_batch)
-                
-        log_prob = normal_log_density(Variable(actions), action_means, action_log_stds, action_stds)
-        action_loss = -Variable(advantages) * torch.exp(log_prob - Variable(fixed_log_prob))
-
+        new_actions = policy_net(s_batch)
+        new_log_softmax = logsoftmax!(new_actions)
+        new_log_prob = [new_log_softmax[a, i] for (i, a) in enumerate(a_batch)]           
+        policy_loss = -1 .* param(advantages).* broadcast(exp, (new_log_prob - param(fixed_log_prob)))
+        return mean(policy_loss)
     end
 
 
     ## define KL loss for discrete distributions
     function get_kl()
-        actions = policy_net(s_batch)
+        new_actions = policy_net(s_batch)
+        new_log_softmax = logsoftmax!(new_actions)
+
+        kl = broadcast(exp, new_log_softmax).*(fixed_log_softmax .- new_log_softmax)
+        kl = sum(kl, 1)
+        return kl
 
     end
-    
-    
 
-
-        return loss_val, td_vals, grad_norm
-    end
-
+    trpo_step(policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping)
 end
 
 
@@ -265,7 +257,7 @@ function batch_train!(solver::TRPOSolver,
                       target_q,
                       replay::ReplayBuffer)
     s_batch, a_batch, r_batch, sp_batch, done_batch = sample(replay)
-    return batch_train!(solver, env, optimizer, value_network, target_q, s_batch, a_batch, r_batch, sp_batch, done_batch))
+    return batch_train!(solver, env, optimizer, value_network, target_q, s_batch, a_batch, r_batch, sp_batch, done_batch)
 end
 
 ### TODO: Implement PrioritizedReplayBuffer for TRPO

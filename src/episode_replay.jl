@@ -7,7 +7,7 @@ mutable struct EpisodeReplayBuffer
     rng::AbstractRNG
     _curr_size::Int64
     _idx::Int64
-    _experience::Vector{Vector{DQExperience}}
+    _experience::Vector{Vector{TRPOExperience}}
 
     _s_batch::Vector{Array{Float64}}
     _a_batch::Vector{Array{Int64}}
@@ -15,7 +15,7 @@ mutable struct EpisodeReplayBuffer
     _sp_batch::Vector{Array{Float64}}
     _done_batch::Vector{Array{Bool}}
     _trace_mask::Vector{Array{Int64}}
-    _episode::Vector{DQExperience}
+    _episode::Vector{TRPOExperience}
 
     function EpisodeReplayBuffer(env::AbstractEnvironment,
                           max_size::Int64,
@@ -23,14 +23,14 @@ mutable struct EpisodeReplayBuffer
                           trace_length::Int64,
                           rng::AbstractRNG = MersenneTwister(0))
         s_dim = obs_dimensions(env)
-        experience = Vector{Vector{DQExperience}}(undef, max_size)
+        experience = Vector{Vector{TRPOExperience}}(undef, max_size)
         _s_batch = [zeros(s_dim..., batch_size) for i=1:trace_length]
         _a_batch = [zeros(Int64, batch_size) for i=1:trace_length]
         _r_batch = [zeros(batch_size) for i=1:trace_length]
         _sp_batch = [zeros(s_dim..., batch_size) for i=1:trace_length]
         _done_batch = [zeros(Bool, batch_size) for i=1:trace_length]
         _trace_mask = [zeros(Int64, batch_size) for i=1:trace_length]
-        _episode = Vector{DQExperience}()
+        _episode = Vector{TRPOExperience}()
         return new(max_size, batch_size, trace_length, rng, 0, 1, experience,
                    _s_batch, _a_batch, _r_batch, _sp_batch, _done_batch, _trace_mask, _episode)
     end
@@ -40,15 +40,15 @@ is_full(r::EpisodeReplayBuffer) = r._curr_size == r.max_size
 
 max_size(r::EpisodeReplayBuffer) = r.max_size
 
-function add_exp!(r::EpisodeReplayBuffer, exp::DQExperience)
+function add_exp!(r::EpisodeReplayBuffer, exp::TRPOExperience)
     push!(r._episode, exp)
     if exp.done
         add_episode!(r, r._episode)
-        r._episode = Vector{DQExperience}()
+        r._episode = Vector{TRPOExperience}()
     end
 end
 
-function add_episode!(r::EpisodeReplayBuffer, ep::Vector{DQExperience})
+function add_episode!(r::EpisodeReplayBuffer, ep::Vector{TRPOExperience})
     r._experience[r._idx] = ep
     r._idx = mod1((r._idx + 1),r.max_size)
     if r._curr_size < r.max_size
@@ -102,7 +102,7 @@ function populate_replay_buffer!(r::EpisodeReplayBuffer,
 end
 
 function generate_episode(env::AbstractEnvironment; max_steps::Int64 = 100)
-    episode = DQExperience[]
+    episode = TRPOExperience[]
     sizehint!(episode, max_steps)
     # start simulation
     o = reset(env)
@@ -112,7 +112,7 @@ function generate_episode(env::AbstractEnvironment; max_steps::Int64 = 100)
         action = sample_action(env)
         ai = actionindex(env.problem, action)
         op, rew, done, info = step!(env, action)
-        exp = DQExperience(o, ai, rew, op, done)
+        exp = TRPOExperience(o, ai, rew, op, done)
         push!(episode, exp)
         o = op
         step += 1
