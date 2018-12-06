@@ -160,6 +160,9 @@ function batch_train!(solver::TRPOSolver,
     prev_value = 0
     prev_advantage = 0
 
+    print(r_batch)
+    print(done_batch)
+
     for i in size(r_batch)[end]:-1:1
         returns[:,i] = r_batch[:,i] + solver.gamma * prev_return * done_batch[:,i]
         deltas[:,i] = r_batch[:,i] + solver.gamma * prev_value * done_batch[:,i] - Tracker.data(values)[:,i]
