@@ -50,9 +50,8 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     end
 
     replay = initialize_replay_buffer(solver, env)
-    value_network = solver.value_network
     policy = NNPolicy(env.problem, solver.policy_network, ordered_actions(env.problem), length(obs_dimensions(env)))
-    optimizer = ADAM(Flux.params(value_network), solver.learning_rate)
+    optimizer = ADAM(Flux.params(solver.value_network), solver.learning_rate)
     # start training
     reset!(policy)
     obs = reset(env)
@@ -92,9 +91,9 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     	end
 
         # train on experience from rollout
-        hs = hiddenstates(policy_network) # Only important for recurrent networks
-        loss_val, td_errors, grad_val = batch_train!(solver, env, optimizer, policy_network, value_network, replay)
-        sethiddenstates!(value_network, hs) # Only important for recurrent networks
+        hs = hiddenstates(solver.policy_network) # Only important for recurrent networks
+        loss_val, td_errors, grad_val = batch_train!(solver, env, optimizer, solver.policy_network, solver.value_network, replay)
+        sethiddenstates!(solver.value_network, hs) # Only important for recurrent networks
 
         if k%solver.eval_freq == 0
             scores_eval = evaluation(solver.evaluation_policy, 
@@ -112,7 +111,7 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
             end             
         end
         if k > solver.train_start && k%solver.save_freq == 0
-            model_saved, saved_mean_reward = save_model(solver, policy_network, value_network, scores_eval, saved_mean_reward, model_saved)
+            model_saved, saved_mean_reward = save_model(solver, solver.policy_network, solver.value_network, scores_eval, saved_mean_reward, model_saved)
         end
 
     end
