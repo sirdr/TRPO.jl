@@ -13,6 +13,7 @@ using RLInterface
 using Optim
 using LinearAlgebra
 using Statistics
+using NNlib
 
 export TRPOSolver,
        AbstractNNPolicy,
