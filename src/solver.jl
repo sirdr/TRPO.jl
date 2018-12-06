@@ -221,13 +221,13 @@ function batch_train!(solver::TRPOSolver,
     # update advantage
     advantages = (advantages .- mean(advantages))./std(advantages)
 
-    fixed_log_softmax = logsoftmax!(actions)
+    fixed_log_softmax = NNlib.logsoftmax!(actions)
     fixed_log_prob = [fixed_log_softmax[a, i] for (i, a) in enumerate(a_batch)]
 
     ## define policy loss function
     function get_policy_loss()
         new_actions = policy_net(s_batch)
-        new_log_softmax = logsoftmax!(new_actions)
+        new_log_softmax = NNlib.logsoftmax!(new_actions)
         new_log_prob = [new_log_softmax[a, i] for (i, a) in enumerate(a_batch)]           
         policy_loss = -1 .* param(advantages).* broadcast(exp, (new_log_prob - param(fixed_log_prob)))
         return mean(policy_loss)
@@ -237,7 +237,7 @@ function batch_train!(solver::TRPOSolver,
     ## define KL loss for discrete distributions
     function get_kl()
         new_actions = policy_net(s_batch)
-        new_log_softmax = logsoftmax!(new_actions)
+        new_log_softmax = NNlib.logsoftmax!(new_actions)
 
         kl = broadcast(exp, new_log_softmax).*(fixed_log_softmax .- new_log_softmax)
         kl = sum(kl, 1)
