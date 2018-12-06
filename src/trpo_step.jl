@@ -63,7 +63,7 @@ end
 #     return False, x
 
 function linesearch(model, f, x, fullstep, expected_improve_rate, max_backtracks::Int64=10, accept_ratio::Float64=0.1)
-    fval = f()
+    fval = f(model)
     backtrack_list = [(x, 0.5^x) for x in 1:max_backtracks]
 
     for (_n_backtracks, stepfrac) in backtrack_list
@@ -83,7 +83,7 @@ end
 
 function trpo_step(model, get_loss, get_kl, max_kl, damping)
 
-    loss = get_loss()
+    loss = get_loss(model)
 
     flat_grads_loss = Float64[]
     for param in params(model)
@@ -93,7 +93,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
     end
 
     function fisher_vector_product(v)
-        kl = get_kl()
+        kl = get_kl(model)
         kl = mean(kl)
 
         # maybe make this a function if possible
