@@ -152,6 +152,8 @@ function batch_train!(solver::TRPOSolver,
 
     values = value_network(s_batch)
 
+    mask = broadcast(x -> abs(Int(x) - 1), done_batch)
+
     returns = zeros(1, solver.batch_size)
     deltas = zeros(1, solver.batch_size)
     advantages = zeros(1, solver.batch_size)
@@ -160,13 +162,12 @@ function batch_train!(solver::TRPOSolver,
     prev_value = 0
     prev_advantage = 0
 
-    print(r_batch)
-    print(done_batch)
+    print(values)
 
     for i in size(r_batch)[end]:-1:1
-        returns[:,i] = r_batch[:,i] + solver.gamma * prev_return * done_batch[:,i]
-        deltas[:,i] = r_batch[:,i] + solver.gamma * prev_value * done_batch[:,i] - Tracker.data(values)[:,i]
-        advantages[:,i] = deltas[:,i] + solver.gamma * solver.tau * prev_advantage * done_batch[:,i]
+        returns[:,i] = r_batch[i] + solver.gamma * prev_return * mask[i]
+        deltas[:,i] = r_batch[i] + solver.gamma * prev_value * mask[i] - Tracker.data(values)[:,i]
+        advantages[:,i] = deltas[:,i] + solver.gamma * solver.tau * prev_advantage * mask[i]
 
         prev_return = returns[1, i]
         prev_value = Tracker.data(values)[1, i]
