@@ -12,6 +12,7 @@ using POMDPPolicies
 using RLInterface
 using Optim
 using LinearAlgebra
+using Statistics
 
 export TRPOSolver,
        AbstractNNPolicy,
