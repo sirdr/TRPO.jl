@@ -51,7 +51,6 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
 
     replay = initialize_replay_buffer(solver, env)
     policy = NNPolicy(env.problem, solver.policy_network, ordered_actions(env.problem), length(obs_dimensions(env)))
-    optimizer = ADAM(Flux.params(solver.value_network), solver.learning_rate)
     # start training
     reset!(policy)
     obs = reset(env)
@@ -92,7 +91,7 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
 
         # train on experience from rollout
         hs = hiddenstates(solver.policy_network) # Only important for recurrent networks
-        loss_val, td_errors, grad_val = batch_train!(solver, env, optimizer, solver.policy_network, solver.value_network, replay)
+        loss_val, td_errors, grad_val = batch_train!(solver, env, solver.policy_network, solver.value_network, replay)
         sethiddenstates!(solver.value_network, hs) # Only important for recurrent networks
 
         if k%solver.eval_freq == 0
@@ -250,13 +249,12 @@ end
 
 
 function batch_train!(solver::TRPOSolver,
-                      env::AbstractEnvironment,
-                      optimizer, 
-                      value_network, 
-                      target_q,
+                      env::AbstractEnvironment, 
+                      policy_network, 
+                      value_network,
                       replay::ReplayBuffer)
     s_batch, a_batch, r_batch, sp_batch, done_batch = sample(replay)
-    return batch_train!(solver, env, optimizer, value_network, target_q, s_batch, a_batch, r_batch, sp_batch, done_batch)
+    return batch_train!(solver, env, policy_network, value_network, s_batch, a_batch, r_batch, sp_batch, done_batch)
 end
 
 ### TODO: Implement PrioritizedReplayBuffer for TRPO
