@@ -223,7 +223,9 @@ function batch_train!(solver::TRPOSolver,
 
 
     fixed_log_softmax = zeros(size(actions))
-    Tracker.data(NNlib.logsoftmax!(actions))
+    Tracker.data(NNlib.logsoftmax!(fixed_log_softmax, actions))
+
+    quit()
 
     fixed_log_prob = sum(action_mask .*fixed_log_softmax, dims=1)
 
