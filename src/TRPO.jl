@@ -17,6 +17,8 @@ export TRPOSolver,
        AbstractNNPolicy,
        NNPolicy,
        TRPOExperience,
+       PolicyNN,
+       ValueNN
     
        # helpers
        flattenbatch,
