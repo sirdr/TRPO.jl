@@ -83,9 +83,9 @@ end
 
 function trpo_step(model, get_loss, get_kl, max_kl, damping)
 
-    loss = get_loss()
-
     quit()
+
+    loss = get_loss()
 
     flat_grads_loss = Float64[]
     for param in params(model)
