@@ -233,7 +233,7 @@ function batch_train!(solver::TRPOSolver,
         new_log_softmax =zeros(size(new_actions))
         NNlib.logsoftmax!(new_log_softmax, new_actions)
         new_log_prob = sum(action_mask.*new_log_softmax, dims=1)    
-        policy_loss = -1 .* advantages .* broadcast(exp, (new_log_prob - param(fixed_log_prob)))
+        policy_loss = -1 .* advantages .* broadcast(exp, (new_log_prob - fixed_log_prob))
         return mean(policy_loss)
     end
 

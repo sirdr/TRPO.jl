@@ -85,6 +85,8 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
 
     loss = get_loss()
 
+    quit()
+
     flat_grads_loss = Float64[]
     for param in params(model)
         grads = Tracker.gradient(() -> loss, Params(param))
