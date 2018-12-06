@@ -224,14 +224,12 @@ function batch_train!(solver::TRPOSolver,
     fixed_log_softmax = Tracker.data(NNlib.logsoftmax!(actions))
     fixed_log_prob = [fixed_log_softmax[a, i] for (i, a) in enumerate(a_batch)]
 
-    print(fixed_log_prob)
-
     ## define policy loss function
     function get_policy_loss(policy_net)
         new_actions = policy_net(s_batch)
         new_log_softmax = NNlib.logsoftmax!(new_actions)
         new_log_prob = [new_log_softmax[a, i] for (i, a) in enumerate(a_batch)]    
-        policy_loss = -1 .* param(advantages).* broadcast(exp, (new_log_prob - fparam(ixed_log_prob)))
+        policy_loss = -1 .* param(advantages).* broadcast(exp, (new_log_prob - param(fixed_log_prob)))
         return mean(policy_loss)
     end
 
