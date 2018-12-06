@@ -101,7 +101,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
         flat_grads = Float64[]
         for param in params(model)
             grads = Tracker.gradient(() -> kl, Params(param))
-            g = Tracker.data(grads[param])
+            g = grads[param]
             append!(flat_grads, reshape(g, length(g)))
         end
 
