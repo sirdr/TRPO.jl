@@ -221,7 +221,7 @@ function batch_train!(solver::TRPOSolver,
     # update advantage
     advantages = (advantages .- mean(advantages))./std(advantages)
 
-    fixed_log_softmax = Tracked.data(NNlib.logsoftmax!(actions))
+    fixed_log_softmax = Tracker.data(NNlib.logsoftmax!(actions))
     fixed_log_prob = [fixed_log_softmax[a, i] for (i, a) in enumerate(a_batch)]
 
     print(fixed_log_prob)
