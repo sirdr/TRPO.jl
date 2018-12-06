@@ -38,5 +38,6 @@ include("episode_replay.jl")
 include("solver.jl")
 include("running_state.jl")
 include("models.jl")
+include("trpo_step.jl")
 
 end # module DeepQLearning
