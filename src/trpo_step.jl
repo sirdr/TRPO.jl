@@ -115,14 +115,14 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
         return flat_grads_grads_kl .+ v .* damping
     end
 
-    step_direction = conjugate_gradients(fisher_vector_product, -1.*flat_grads_loss, 10)
+    step_direction = conjugate_gradients(fisher_vector_product, -1 .*flat_grads_loss, 10)
 
-    shs = 0.5.*sum(step_direction .* fisher_vector_product(step_direction), end)
+    shs = 0.5 .*sum(step_direction .* fisher_vector_product(step_direction), end)
 
     lagrange_multiplier = broadcast(sqrt, shs/max_kl)
     fullstep = step_direction./lagrange_multiplier[1]
 
-    negdot_stepdir = -1.*sum(step_direction.*flat_grads_loss)
+    negdot_stepdir = -1 .*sum(step_direction.*flat_grads_loss)
 
     first_lm = lagrange_multiplier[0]
     grad_norm = norm(flat_grads_loss)
