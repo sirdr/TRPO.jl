@@ -74,7 +74,7 @@ function linesearch(model, f, x, fullstep, expected_improve_rate, max_backtracks
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve / expected_improve
 
-        if ratio > accept_ratio and actual_improve > 0
+        if ratio > accept_ratio && actual_improve > 0
             return true, xnew
         end
     end
