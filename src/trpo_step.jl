@@ -31,8 +31,9 @@ function conjugate_gradients(Avp, b, nsteps)
         betta = new_rdotr / rdotr
         p = r + betta * p
         rdotr = new_rdotr
-        if rdotr < resitual_tol:
+        if rdotr < resitual_tol
             break
+        end
     end
 
     return x
@@ -73,8 +74,9 @@ function linesearch(model, f, x, fullstep, expected_improve_rate, max_backtracks
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve / expected_improve
 
-        if ratio > accept_ratio and actual_improve > 0:
+        if ratio > accept_ratio and actual_improve > 0
             return true, xnew
+        end
     end
     return false, x
 end
