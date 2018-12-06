@@ -98,7 +98,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
         kl = mean(kl)
 
         # maybe make this a function if possible
-        flat_grads = Float64[]
+        flat_grads = []
         for param in params(model)
             grads = Tracker.gradient(() -> kl, Params(param))
             g = grads[param]
@@ -134,6 +134,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
     println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
 
     prev_params = get_flat_params_from(model)
+    #prev_params = params()
     success, new_params = linesearch(model, get_loss, prev_params, fullstep,
                                      negdot_stepdir ./ first_lm)
     set_flat_params_to!(model, new_params)
