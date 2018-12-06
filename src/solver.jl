@@ -224,15 +224,15 @@ function batch_train!(solver::TRPOSolver,
     n_actions = size(actions)[1]
     action_mask = [Int(a_batch[div(i-1, n_actions)+1] == (i-1)%n_actions+1) for (i, a) in enumerate(actions)]
 
-    print(a_batch)
+    print(size(a_batch))
     print("\n")
-    print(actions)
-    print("\n")
-    print(fixed_log_prob)
+    print(size(actions))
     print("\n")
 
     fixed_log_softmax = Tracker.data(NNlib.logsoftmax!(actions))
     fixed_log_prob = sum(action_mask.*fixed_log_softmax, 1)
+    print(size(fixed_log_prob))
+    print("\n")
 
     ## define policy loss function
     function get_policy_loss(policy_net)

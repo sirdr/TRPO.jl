@@ -18,7 +18,7 @@ function evaluate(mdp, policy, rng, n_ep=100, max_steps=100)
     return avg_r/=n_ep
 end
 
-@testset "vanilla DQN" begin 
+@testset "vanilla TRPO" begin 
     rng = MersenneTwister(1)
     mdp = TestMDP((5,5), 4, 6)
     #model = ValueNN(100, 8, 8, n_actions(mdp))#Chain(x->flattenbatch(x), Dense(100, 8, tanh), Dense(8, n_actions(mdp)))
