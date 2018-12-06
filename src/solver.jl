@@ -222,7 +222,7 @@ function batch_train!(solver::TRPOSolver,
     advantages = (advantages .- mean(advantages))./std(advantages)
 
     n_actions = size(actions)[1]
-    action_mask = [Int(actions[div(i-1, n_actions)+1] == (i-1)%n_actions+1) for (i, a) in enumerate(a_batch)]
+    action_mask = [Int(a_batch[div(i-1, n_actions)+1] == (i-1)%n_actions+1) for (i, a) in enumerate(actions)]
 
     fixed_log_softmax = Tracker.data(NNlib.logsoftmax!(actions))
     fixed_log_prob = sum(action_mask.*fixed_log_softmax, 1)
