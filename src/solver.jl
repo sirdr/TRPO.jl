@@ -184,9 +184,6 @@ function batch_train!(solver::TRPOSolver,
             value_loss += sum(param.^2)*solver.l2_reg
         end
         #Flux.back!(value_loss)
-        for param in params(value_network)
-            grads = Tracker.gradient(() -> value_loss, Params(param))
-        end
         #Tracker.data(get_flat_grad_from(value_network))
         return Tracker.data(value_loss)
     end
@@ -233,7 +230,8 @@ function batch_train!(solver::TRPOSolver,
     ## define policy loss function
     function get_policy_loss(policy_net)
         new_actions = policy_net(s_batch)
-        new_log_softmax = NNlib.logsoftmax!(new_actions)
+        new_log_softmax =zeros(size(new_actions))
+        NNlib.logsoftmax!(new_log_softmax, new_actions)
         new_log_prob = sum(action_mask.*new_log_softmax, dims=1)    
         policy_loss = -1 .* param(advantages).* broadcast(exp, (new_log_prob - param(fixed_log_prob)))
         return mean(policy_loss)
@@ -243,8 +241,8 @@ function batch_train!(solver::TRPOSolver,
     ## define KL loss for discrete distributions
     function get_kl(policy_net)
         new_actions = policy_net(s_batch)
-        new_log_softmax = NNlib.logsoftmax!(new_actions)
-
+        new_log_softmax =zeros(size(new_actions))
+        NNlib.logsoftmax!(new_log_softmax, new_actions)
         kl = broadcast(exp, new_log_softmax).*(fixed_log_softmax .- new_log_softmax)
         kl = sum(kl, dims=1)
         return kl
