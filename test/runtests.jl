@@ -24,6 +24,13 @@ end
     #model = ValueNN(100, 8, 8, n_actions(mdp))#Chain(x->flattenbatch(x), Dense(100, 8, tanh), Dense(8, n_actions(mdp)))
 
     # This is mainly just for ease of testing... will remove in final version
+    function PolicyNN(a1_in, a1_out, a2_in, a2_out)
+        return Chain(x->flattenbatch(x), Dense(a1_in, a1_out, tanh), Dense(a2_in, a2_out, tanh))
+    end
+
+    function ValueNN(a1_in, a1_out, a2_in, a2_out)
+        return Chain(x->flattenbatch(x), Dense(a1_in, a1_out, tanh), Dense(a2_in, a2_out, tanh))
+    end
 
     policy_network = PolicyNN(100, 64, 64, n_actions(mdp))
     value_network = ValueNN(100, 64, 64, 1)

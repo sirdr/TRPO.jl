@@ -85,8 +85,8 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
                 if done
                     break
                 end
+                num_samples += 1
             end
-            num_samples += (t - 1)
             global_step += num_samples
 
     	end
