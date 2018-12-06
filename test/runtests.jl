@@ -4,10 +4,9 @@ using Flux
 using Random
 using RLInterface
 using Test
+using TRPO
 
 include("test_env.jl")
-include("../src/TRPO.jl")
-include("../src/models.jl")
 
 function evaluate(mdp, policy, rng, n_ep=100, max_steps=100)
     avg_r = 0.
