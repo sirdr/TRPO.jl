@@ -178,7 +178,7 @@ function batch_train!(solver::TRPOSolver,
     function get_value_loss(flat_params)
         set_flat_params_to!(value_network, flat_params)
         _values = value_network(s_batch)
-        value_loss = mean((_values - targets).^2)
+        value_loss = mean((_values[1,:] - targets).^2)
         # weight decay
         for param in params(value_network)
             value_loss += sum(param.^2)*l2_reg
@@ -193,7 +193,7 @@ function batch_train!(solver::TRPOSolver,
 
     function g!(storage, x)
         _values = value_network(s_batch)
-        value_loss = mean((_values - targets).^2)
+        value_loss = mean((_values[1,:] - targets).^2)
         # weight decay
         for param in params(value_network)
             value_loss += sum(param.^2)*l2_reg
