@@ -213,9 +213,7 @@ function batch_train!(solver::TRPOSolver,
     flat_params = Optim.minimizer(res) # gets the params that minimize the loss
     set_flat_params_to!(value_network, flat_params)
 
-    # Begin: TODO - figure out return of policy network
     actions = old_policy_network(s_batch) 
-    # End: TODO
 
     # update advantage
     advantages = (advantages .- mean(advantages))./std(advantages)
@@ -248,7 +246,19 @@ function batch_train!(solver::TRPOSolver,
         return kl
     end
 
-    trpo_step(new_policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping)
+    # Calculate Fisher Information Matrix (FIM) of each input
+    # Note: the FIM is diagonal for each input with elements of 1/prob(action)
+    # which allows us to store it as a vector for each input in the batch
+    # with dimension equal to the action space
+    function get_fim(net)
+        new_actions = net(s_batch)
+        new_log_softmax = NNlib.logsoftmax(new_actions)
+        new_softmax = broadcast(exp, new_log_softmax)
+        fim = broadcast(inv, new_softmax)
+        return fim, new_softmax
+    end
+
+    trpo_step(new_policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping, get_fim = get_fim)
 end
 
 
