@@ -92,8 +92,6 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
         append!(flat_grads_loss, reshape(g, length(g)))
     end
 
-    println("flat_grads_loss: $flat_grads_loss")
-
 
     function fisher_vector_product(v)
         kl = get_kl(model)
@@ -107,9 +105,16 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
             append!(flat_grads, reshape(g, length(g)))
         end
 
-        print(v)
+        println("HEre we are:")
+
+        println(v)
+        println("yup are:")
         print("\n")
-        print(flat_grads)
+        print("\n")
+        print("\n")
+        print("\n")
+        print("\n")
+        println(flat_grads)
 
         kl_v = sum(flat_grads.*v)
 
