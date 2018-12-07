@@ -166,5 +166,5 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
                                      negdot_stepdir ./ first_lm)
     set_flat_params_to!(model, new_params)
 
-    return loss
+    return loss, new_params, grad_norm
 end

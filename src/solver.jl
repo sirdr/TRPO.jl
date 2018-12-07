@@ -91,7 +91,7 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
 
         # train on experience from rollout
         hs = hiddenstates(solver.policy_network) # Only important for recurrent networks
-        loss_val, td_errors, grad_val = batch_train!(solver, env, solver.policy_network, solver.value_network, replay)
+        loss_val, grad_val = batch_train!(solver, env, solver.policy_network, solver.value_network, replay)
         sethiddenstates!(solver.value_network, hs) # Only important for recurrent networks
 
         if k%solver.eval_freq == 0
@@ -258,7 +258,9 @@ function batch_train!(solver::TRPOSolver,
         return fim, new_actions
     end
 
-    trpo_step(new_policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping, get_fim)
+    loss_val, new_params_flat, grad_val = trpo_step(new_policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping, get_fim)
+    set_flat_params_to!(old_policy_network, new_params_flat)
+    return loss_val, grad_val
 end
 
 
