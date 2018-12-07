@@ -129,6 +129,8 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
             append!(Jt, reshape(g, length(g)))
         end
 
+        print(v)
+
         Jtv = sum(Jt .* v)
         Jv = Tracker.gradient(() -> Jtv, Params(t))
 
