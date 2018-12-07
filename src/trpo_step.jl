@@ -85,10 +85,10 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
 
     loss = get_loss(model)
 
-    flat_grads_loss = []
+    flat_grads_loss = Float64[]
     for param in params(model)
         grads = Tracker.gradient(() -> loss, Params(param))
-        g = grads[param]
+        g = Tracker.data(grads[param])
         append!(flat_grads_loss, reshape(g, length(g)))
     end
 
@@ -104,17 +104,6 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
             g = grads[param]
             append!(flat_grads, reshape(g, length(g)))
         end
-
-        println("HEre we are:")
-
-        println(v)
-        println("yup are:")
-        print("\n")
-        print("\n")
-        print("\n")
-        print("\n")
-        print("\n")
-        println(flat_grads)
 
         kl_v = sum(flat_grads.*v)
 
