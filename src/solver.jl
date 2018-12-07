@@ -55,12 +55,14 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
     reset!(policy)
     obs = reset(env)
     done = false
+    all_rewards = Float64[]
     episode_rewards = Float64[0.0]
     episode_steps = Float64[]
     saved_mean_reward = -Inf
     scores_eval = -Inf
     model_saved = false
     global_step = 0
+    optimizer = ADAM(Flux.params(solver.value_network), solver.learning_rate)
 
     for k=1:solver.max_steps
 
@@ -86,12 +88,12 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
                 num_samples += 1
             end
             global_step += num_samples
-
+            append!(all_rewards, episode_rewards / num_samples)
     	end
 
         # train on experience from rollout
         hs = hiddenstates(solver.policy_network) # Only important for recurrent networks
-        loss_val, grad_val = batch_train!(solver, env, solver.policy_network, solver.value_network, replay)
+        loss_val, grad_val = batch_train!(solver, env, solver.policy_network, solver.value_network, replay, optimizer)
         sethiddenstates!(solver.value_network, hs) # Only important for recurrent networks
 
         if k%solver.eval_freq == 0
@@ -104,9 +106,13 @@ function POMDPs.solve(solver::TRPOSolver, env::AbstractEnvironment)
 
         if k%solver.log_freq == 0
             #TODO log the training perf somewhere (?dataframes/csv?)
+            # println(all_rewards)
+            avg100_reward = sum(all_rewards) / length(all_rewards)
+            # println(avg100_reward)
+            #println("eps: $eps")
             if  solver.verbose
                 @printf("%5d / %5d eps %0.3f |  avgR %1.3f | Loss %2.3e | Grad %2.3e \n",
-                        k, solver.max_steps, eps, avg100_reward, loss_val, grad_val)
+                        k, solver.max_steps, global_step, avg100_reward, Tracker.data(loss_val), Tracker.data(grad_val))
             end             
         end
         if k > solver.train_start && k%solver.save_freq == 0
@@ -148,7 +154,7 @@ function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment,
                       old_policy_network,
                       value_network, 
-                      s_batch, a_batch, r_batch, sp_batch, done_batch)
+                      s_batch, a_batch, r_batch, sp_batch, done_batch, optimizer)
 
     new_policy_network = deepcopy(old_policy_network)
 
@@ -209,9 +215,19 @@ function batch_train!(solver::TRPOSolver,
         end
     end
 
-    res = optimize(get_value_loss, g!, get_flat_params_from(value_network), LBFGS(), Optim.Options(iterations=25)) # options used in corresponding pytorch implementation
-    flat_params = Optim.minimizer(res) # gets the params that minimize the loss
-    set_flat_params_to!(value_network, flat_params)
+    # res = optimize(get_value_loss, g!, get_flat_params_from(value_network), LBFGS(), Optim.Options(iterations=25)) # options used in corresponding pytorch implementation
+    # flat_params = Optim.minimizer(res) # gets the params that minimize the loss
+    # set_flat_params_to!(value_network, flat_params)
+
+    ## Uncomment below for vanilla backprop
+    _values = value_network(s_batch)
+    value_loss = mean((_values[1,:] - targets).^2)
+    # weight decay
+    for param in params(value_network)
+        value_loss += sum(param.^2)*solver.l2_reg
+    end
+    Flux.back!(value_loss)
+    optimizer()
 
     actions = old_policy_network(s_batch) 
 
@@ -269,9 +285,9 @@ function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment, 
                       old_policy_network, 
                       value_network,
-                      replay::ReplayBuffer)
+                      replay::ReplayBuffer, optimizer)
     s_batch, a_batch, r_batch, sp_batch, done_batch = sample(replay)
-    return batch_train!(solver, env, old_policy_network, value_network, s_batch, a_batch, r_batch, sp_batch, done_batch)
+    return batch_train!(solver, env, old_policy_network, value_network, s_batch, a_batch, r_batch, sp_batch, done_batch, optimizer)
 end
 
 ### TODO: Implement PrioritizedReplayBuffer for TRPO

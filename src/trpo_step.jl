@@ -23,6 +23,9 @@ function conjugate_gradients(Avp, b, nsteps)
     resitual_tol = 1e-10
 
     for i = 1:nsteps
+        if count(n -> abs(n) < 1e-20, p) == length(p)
+            return x
+        end
         _Avp = Avp(p)
         alpha = rdotr / dot(vec(p), vec(_Avp))
         x += alpha * p
@@ -84,6 +87,7 @@ end
 function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
 
     loss = get_loss(model)
+    #println("Trpo_step loss: $loss")
 
     flat_grads_loss = Float64[]
     for param in params(model)
@@ -158,7 +162,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
     first_lm = lagrange_multiplier[1]
     grad_norm = norm(flat_grads_loss)
 
-    println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
+    #println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
 
     prev_params = get_flat_params_from(model)
     #prev_params = params()
