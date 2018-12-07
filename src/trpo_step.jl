@@ -119,8 +119,8 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
         #     return flat_grads_grads_kl .+ v .* damping
         # else
         fim, action_probs = get_fim(model)
-        t = ones(size(action_probs))
-        at = sum(action_probs .* param(t))
+        t = param(ones(size(action_probs)))
+        at = sum(action_probs .* t)
 
         Jt = []
         for param in params(model)
@@ -128,8 +128,6 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
             g = grads[param]
             append!(Jt, reshape(g, length(g)))
         end
-
-        print(v)
 
         Jtv = sum(Jt .* v)
         Jv = Tracker.gradient(() -> Jtv, Params(t))

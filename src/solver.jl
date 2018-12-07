@@ -252,10 +252,10 @@ function batch_train!(solver::TRPOSolver,
     # with dimension equal to the action space
     function get_fim(net)
         new_actions = net(s_batch)
-        new_log_softmax = NNlib.logsoftmax(new_actions)
-        new_softmax = broadcast(exp, new_log_softmax)
-        fim = broadcast(inv, new_softmax)
-        return fim, new_softmax
+        #new_log_softmax = NNlib.logsoftmax(new_actions)
+        #new_softmax = broadcast(exp, new_log_softmax)
+        fim = broadcast(inv, new_actions)
+        return fim, new_actions
     end
 
     trpo_step(new_policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping, get_fim)
