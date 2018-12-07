@@ -148,6 +148,8 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
 
     fvp = fisher_vector_product(step_direction)
 
+    print(size(fvp))
+
     shs = 0.5 .*sum(step_direction .* fvp, length(size(fvp)))
 
     lagrange_multiplier = broadcast(sqrt, shs/max_kl)
