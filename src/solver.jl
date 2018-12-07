@@ -271,7 +271,7 @@ function batch_train!(solver::TRPOSolver,
         #new_softmax = NNlib.softmax(new_actions)
         #new_softmax = broadcast(exp, new_log_softmax)
         new_exp = broadcast(exp, new_actions)
-        new_sum = sum(new_exp, 1)
+        new_sum = sum(new_exp, dims=1)
         new_softmax = new_exp ./ new_sum
         fim = broadcast(inv, new_softmax)
         return fim, new_softmax
