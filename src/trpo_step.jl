@@ -85,12 +85,14 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
 
     loss = get_loss(model)
 
-    flat_grads_loss = Float64[]
+    flat_grads_loss = []
     for param in params(model)
         grads = Tracker.gradient(() -> loss, Params(param))
-        g = Tracker.data(grads[param])
+        g = grads[param]
         append!(flat_grads_loss, reshape(g, length(g)))
     end
+
+    println("flat_grads_loss: $flat_grads_loss")
 
 
     function fisher_vector_product(v)
@@ -104,6 +106,8 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
             g = grads[param]
             append!(flat_grads, reshape(g, length(g)))
         end
+
+
 
         kl_v = sum(flat_grads.*v)
 
