@@ -155,7 +155,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
 
     negdot_stepdir = -1 .*sum(step_direction.*flat_grads_loss)
 
-    first_lm = lagrange_multiplier[0]
+    first_lm = lagrange_multiplier[1]
     grad_norm = norm(flat_grads_loss)
 
     println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
