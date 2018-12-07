@@ -239,7 +239,9 @@ function batch_train!(solver::TRPOSolver,
 
     old_log_softmax = NNlib.logsoftmax(actions)
 
-    print(action_mask .*old_log_softmax)
+    print(size(old_log_softmax))
+    print(size(action_mask))
+    #print(action_mask .*old_log_softmax)
 
     old_log_prob = sum(action_mask .*old_log_softmax, dims=1)
 
