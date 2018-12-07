@@ -19,41 +19,41 @@ function evaluate(mdp, solver, policy, rng, n_ep=100, max_steps=100)
 end
 
 
-# @testset "BabyPOMDP" begin 
-# 	babyPOMDP = BabyPOMDP()
+@testset "BabyPOMDP" begin 
+	babyPOMDP = BabyPOMDP()
 
-# 	function PolicyNN(a1_in, a1_out, a2_in, a2_out)
-# 	    return Chain(x->TRPO.flattenbatch(x), Dense(a1_in, a1_out, tanh), Dense(a2_in, a2_out, tanh))
-# 	end
+	function PolicyNN(a1_in, a1_out, a2_in, a2_out)
+	    return Chain(x->TRPO.flattenbatch(x), Dense(a1_in, a1_out, tanh), Dense(a2_in, a2_out, tanh))
+	end
 
-# 	function ValueNN(a1_in, a1_out, a2_in, a2_out)
-# 	    return Chain(x->TRPO.flattenbatch(x), Dense(a1_in, a1_out, tanh), Dense(a2_in, a2_out, tanh))
-# 	end
+	function ValueNN(a1_in, a1_out, a2_in, a2_out)
+	    return Chain(x->TRPO.flattenbatch(x), Dense(a1_in, a1_out, tanh), Dense(a2_in, a2_out, tanh))
+	end
 
-# 	policy_network = PolicyNN(1, 16, 16, n_actions(tigerPOMDP))
-# 	value_network = ValueNN(1, 16, 16, 1)
-# 	rng = MersenneTwister(1)
+	policy_network = PolicyNN(1, 16, 16, n_actions(babyPOMDP))
+	value_network = ValueNN(1, 16, 16, 1)
+	rng = MersenneTwister(1)
 
-# 	solver = TRPO.TRPOSolver(policy_network = policy_network, value_network=value_network, max_steps=10000, learning_rate=0.005, 
-# 	                             eval_freq=2000,num_ep_eval=100,
-# 	                             log_freq = 500, prioritized_replay=false,
-# 	                             rng=rng)
-	# using QMDP
-	# solver = QMDPSolver()
-	# babyPolicy = solve(solver, babyPOMDP)
+	solver = TRPO.TRPOSolver(policy_network = policy_network, value_network=value_network, max_steps=10000, learning_rate=0.005, 
+	                             eval_freq=2000,num_ep_eval=100,
+	                             log_freq = 500, prioritized_replay=false,
+	                             rng=rng)
+	using QMDP
+	solver = QMDPSolver()
+	babyPolicy = solve(solver, babyPOMDP)
 
-# 	belief_updater = updater(babyPolicy) 
+	belief_updater = updater(babyPolicy) 
 
-# 	history = simulate(HistoryRecorder(max_steps=10), babyPOMDP, babyPolicy, belief_updater)
+	history = simulate(HistoryRecorder(max_steps=10), babyPOMDP, babyPolicy, belief_updater)
 
-# 	for (s, b, a, o) in eachstep(history, "sbao")
-# 	    println("State was $s,")
-# 	    println("belief was $b,")
-# 	    println("action $a was taken,")
-# 	    println("and observation $o was received.\n")
-# 	end
-# 	println("*******Discounted reward for baby was $(discounted_reward(history)).")
-# end
+	for (s, b, a, o) in eachstep(history, "sbao")
+	    println("State was $s,")
+	    println("belief was $b,")
+	    println("action $a was taken,")
+	    println("and observation $o was received.\n")
+	end
+	println("*******Discounted reward for baby was $(discounted_reward(history)).")
+end
 
 
 @testset "TigerPOMDP" begin 

@@ -136,6 +136,9 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
         Jtv = sum(Jt .* v)
         Jv = Tracker.gradient(() -> Jtv, Params(t))[t]
 
+        print(size(Jv))
+        print(size(fim))
+
         MJv = fim .* Tracker.data(Jv)
         a_MJv = sum(action_probs .* MJv)
 
