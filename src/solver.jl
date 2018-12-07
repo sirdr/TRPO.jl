@@ -258,7 +258,7 @@ function batch_train!(solver::TRPOSolver,
         return fim, new_softmax
     end
 
-    trpo_step(new_policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping, get_fim = get_fim)
+    trpo_step(new_policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping, get_fim)
 end
 
 
