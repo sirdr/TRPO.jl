@@ -81,7 +81,7 @@ function linesearch(model, f, x, fullstep, expected_improve_rate, max_backtracks
     return false, x
 end
 
-function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim=nothing)
+function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim::Any = nothing)
 
     loss = get_loss(model)
 
