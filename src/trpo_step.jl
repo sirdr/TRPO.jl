@@ -105,7 +105,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping)
             append!(flat_grads, reshape(g, length(g)))
         end
 
-        kl_v = sum(flat_grads.*param(v))
+        kl_v = sum(flat_grads.*v)
 
         flat_grads_grads_kl = Float64[]
         for param in params(model)

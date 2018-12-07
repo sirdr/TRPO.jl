@@ -146,9 +146,11 @@ end
 
 function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment,
-                      policy_network,
+                      old_policy_network,
                       value_network, 
                       s_batch, a_batch, r_batch, sp_batch, done_batch)
+
+    new_policy_network = deepcopy(old_policy_network)
 
     values = value_network(s_batch)
 
@@ -212,7 +214,7 @@ function batch_train!(solver::TRPOSolver,
     set_flat_params_to!(value_network, flat_params)
 
     # Begin: TODO - figure out return of policy network
-    actions = policy_network(s_batch) 
+    actions = old_policy_network(s_batch) 
     # End: TODO
 
     # update advantage
@@ -221,9 +223,9 @@ function batch_train!(solver::TRPOSolver,
     n_actions = size(actions)[1]
     action_mask = [Int(a_batch[div(i-1, n_actions)+1] == (i-1)%n_actions+1) for (i, a) in enumerate(actions)]
 
-    fixed_log_softmax = NNlib.logsoftmax(actions)
+    old_log_softmax = NNlib.logsoftmax(actions)
 
-    fixed_log_prob = sum(action_mask .*fixed_log_softmax, dims=1)
+    old_log_prob = sum(action_mask .*old_log_softmax, dims=1)
 
     ## define policy loss function
     function get_policy_loss(net)
@@ -231,8 +233,7 @@ function batch_train!(solver::TRPOSolver,
         new_actions = net(s_batch)
         new_log_softmax = NNlib.logsoftmax(new_actions)
         new_log_prob = sum(action_mask.*new_log_softmax, dims=1)
-
-        policy_loss = -1 .* advantages .* broadcast(exp, (new_log_prob - fixed_log_prob))
+        policy_loss = -1 .* advantages .* broadcast(exp, (new_log_prob - old_log_prob))
         return mean(policy_loss)
     end
 
@@ -242,24 +243,23 @@ function batch_train!(solver::TRPOSolver,
         #new_actions = policy_network(s_batch)
         new_actions = net(s_batch)
         new_log_softmax = NNlib.logsoftmax(new_actions)
-        kl = broadcast(exp, new_log_softmax).*(fixed_log_softmax .- new_log_softmax)
+        kl = broadcast(exp, new_log_softmax).*(old_log_softmax .- new_log_softmax)
         kl = sum(kl, dims=1)
         return kl
-
     end
 
-    trpo_step(policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping)
+    trpo_step(new_policy_network, get_policy_loss, get_kl, solver.max_kl, solver.damping)
 end
 
 
 
 function batch_train!(solver::TRPOSolver,
                       env::AbstractEnvironment, 
-                      policy_network, 
+                      old_policy_network, 
                       value_network,
                       replay::ReplayBuffer)
     s_batch, a_batch, r_batch, sp_batch, done_batch = sample(replay)
-    return batch_train!(solver, env, policy_network, value_network, s_batch, a_batch, r_batch, sp_batch, done_batch)
+    return batch_train!(solver, env, old_policy_network, value_network, s_batch, a_batch, r_batch, sp_batch, done_batch)
 end
 
 ### TODO: Implement PrioritizedReplayBuffer for TRPO
