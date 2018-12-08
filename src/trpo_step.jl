@@ -1,20 +1,4 @@
-# def conjugate_gradients(Avp, b, nsteps, residual_tol=1e-10):
-#     x = torch.zeros(b.size())
-#     r = b.clone()
-#     p = b.clone()
-#     rdotr = torch.dot(r, r)
-#     for i in range(nsteps):
-#         _Avp = Avp(p)
-#         alpha = rdotr / torch.dot(p, _Avp)
-#         x += alpha * p
-#         r -= alpha * _Avp
-#         new_rdotr = torch.dot(r, r)
-#         betta = new_rdotr / rdotr
-#         p = r + betta * p
-#         rdotr = new_rdotr
-#         if rdotr < residual_tol:
-#             break
-#     return x
+
 function conjugate_gradients(Avp, b, nsteps)
     x = zeros(size(b))
     r = deepcopy(b)
@@ -42,29 +26,6 @@ function conjugate_gradients(Avp, b, nsteps)
     return x
 end
 
-# def linesearch(model,
-#            f,
-#            x,
-#            fullstep,
-#            expected_improve_rate,
-#            max_backtracks=10,
-#            accept_ratio=.1):
-#     fval = f(True).data
-#     print("fval before", fval.item())
-#     for (_n_backtracks, stepfrac) in m:
-#         xnew = x + stepfrac * fullstep
-#         set_flat_params_to(model, xnew)
-#         newfval = f(True).data
-#         actual_improve = fval - newfval
-#         expected_improve = expected_improve_rate * stepfrac
-#         ratio = actual_improve / expected_improve
-#         print("a/e/r", actual_improve.item(), expected_improve.item(), ratio.item())
-
-#         if ratio.item() > accept_ratio and actual_improve.item() > 0:
-#             print("fval after", newfval.item())
-#             return True, xnew
-#     return False, x
-
 function linesearch(model, f, x, fullstep, expected_improve_rate, max_backtracks::Int64=10, accept_ratio::Float64=0.1)
     fval = f(model)
     backtrack_list = [(x, 0.5^x) for x in 1:max_backtracks]
@@ -87,7 +48,6 @@ end
 function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
 
     loss = get_loss(model)
-    #println("Trpo_step loss: $loss")
 
     flat_grads_loss = Float64[]
     for param in params(model)
@@ -135,9 +95,6 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
 
         Jtv = sum(Jt .* v)
         Jv = Tracker.gradient(() -> Jtv, Params(t))[t]
-        print(size(v))
-        print(size(Jt))
-        println(size(fim))
 
         MJv = fim .* Tracker.data(Jv)
         a_MJv = sum(action_probs .* MJv)
@@ -165,10 +122,7 @@ function trpo_step(model, get_loss, get_kl, max_kl, damping, get_fim)
     first_lm = lagrange_multiplier[1]
     grad_norm = norm(flat_grads_loss)
 
-    #println("lagrange multiplier: $first_lm, grad norm: $grad_norm")
-
     prev_params = get_flat_params_from(model)
-    #prev_params = params()
     success, new_params = linesearch(model, get_loss, prev_params, fullstep,
                                      negdot_stepdir ./ first_lm)
     set_flat_params_to!(model, new_params)

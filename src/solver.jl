@@ -14,7 +14,7 @@
     evaluation_policy::Any = basic_evaluation
     exploration_policy::Any = linear_epsilon_greedy(max_steps, eps_fraction, eps_end)
     trace_length::Int64 = 40
-    prioritized_replay::Bool = true
+    prioritized_replay::Bool = false
     prioritized_replay_alpha::Float64 = 0.6
     prioritized_replay_epsilon::Float64 = 1e-6
     prioritized_replay_beta::Float64 = 0.4
@@ -170,6 +170,7 @@ function batch_train!(solver::TRPOSolver,
     prev_value = 0
     prev_advantage = 0
 
+    # Generalized Advantage Estimation
     for i in size(r_batch)[end]:-1:1
         returns[i] = r_batch[i] + solver.gamma * prev_return * mask[i]
         deltas[i] = r_batch[i] + solver.gamma * prev_value * mask[i] - Tracker.data(values)[1,i]
@@ -182,7 +183,7 @@ function batch_train!(solver::TRPOSolver,
 
     targets = param(returns)
 
-    ## define value loss function
+    ## For use with Optim.jl optimizer()
     function get_value_loss(flat_params)
         set_flat_params_to!(value_network, flat_params)
         _values = value_network(s_batch)
@@ -196,6 +197,7 @@ function batch_train!(solver::TRPOSolver,
         return Tracker.data(value_loss)
     end
 
+    ## For use with Optim.jl optimizer()
     function g!(storage, x)
         _values = value_network(s_batch)
         value_loss = mean((_values[1,:] - targets).^2)
@@ -215,11 +217,12 @@ function batch_train!(solver::TRPOSolver,
         end
     end
 
+    #### L-BFGS
     # res = optimize(get_value_loss, g!, get_flat_params_from(value_network), LBFGS(), Optim.Options(iterations=25)) # options used in corresponding pytorch implementation
     # flat_params = Optim.minimizer(res) # gets the params that minimize the loss
     # set_flat_params_to!(value_network, flat_params)
 
-    ## Uncomment below for vanilla backprop
+    ## ADAM Optimizer
     _values = value_network(s_batch)
     value_loss = mean((_values[1,:] - targets).^2)
     # weight decay
@@ -238,10 +241,6 @@ function batch_train!(solver::TRPOSolver,
     action_mask = [Int(a_batch[div(i-1, n_actions)+1] == (i-1)%n_actions+1) for (i, a) in enumerate(actions)]
 
     old_log_softmax = NNlib.logsoftmax(actions)
-
-    #print(size(old_log_softmax))
-    #@show action_mask
-    #@show action_mask .*old_log_softmax
 
     old_log_prob = sum(action_mask .*old_log_softmax, dims=1)
 
@@ -272,8 +271,6 @@ function batch_train!(solver::TRPOSolver,
     # with dimension equal to the action space
     function get_fim(net)
         new_actions = net(s_batch)
-        #new_softmax = NNlib.softmax(new_actions)
-        #new_softmax = broadcast(exp, new_log_softmax)
         new_exp = broadcast(exp, new_actions)
         new_sum = sum(new_exp, dims=1)
         new_softmax = new_exp ./ new_sum
