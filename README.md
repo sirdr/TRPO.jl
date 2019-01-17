@@ -12,3 +12,4 @@ Notes:
 - set Value Network to 0
 - Value Network is there just to reduce variance (so can just use simple linear function or 0 baseline)
 - checl out Open AI baselines (for identity mapping problem) -- baselines/common/tests/envs
+- check number of linesearches (shouldnt be more than 5 -- approximately)
