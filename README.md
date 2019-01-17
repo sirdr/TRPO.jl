@@ -8,7 +8,7 @@ Notes:
 
 - States are the actions (Identity mapping, reward is difference between action and state, sample states randomly)
 - Plot (KL, KL relative to bound)
-- hessian-vector product by finite differences 
+- hessian-vector product by finite differences (difference should be around 10^-5)
 - set Value Network to 0
 - Value Network is there just to reduce variance (so can just use simple linear function or 0 baseline)
 - checl out Open AI baselines (for identity mapping problem) -- baselines/common/tests/envs
