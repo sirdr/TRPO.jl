@@ -6,6 +6,7 @@ This is currently a work in progress.
 
 Notes:
 
+- Implement simple policy gradient
 - States are the actions (Identity mapping, reward is difference between action and state, sample states randomly)
 - Plot (KL, KL relative to bound)
 - hessian-vector product by finite differences (difference should be around 10^-5)
